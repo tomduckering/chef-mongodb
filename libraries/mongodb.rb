@@ -47,7 +47,8 @@ class Chef::ResourceDefinitionList::MongoDB
     # Want the node originating the connection to be included in the replicaset
     members << node unless members.include?(node)
     members.sort!{ |x,y| x.name <=> y.name }
-    members.uniq!{ |x,y| x.name <=> y.name }
+    Chef::Log.warn(members.class.to_s)
+    Chef::Log.warn(members.inspect)
     rs_members = []
     members.each_index do |n|
       port = members[n]['mongodb']['port']
