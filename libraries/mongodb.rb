@@ -48,23 +48,19 @@ class Chef::ResourceDefinitionList::MongoDB
     members << node unless members.include?(node)
     members.sort!{ |x,y| x.name <=> y.name }
     members.uniq!{ |x| x.name }
-    Chef::Log.warn(members.class.to_s)
-    Chef::Log.warn(members.inspect)
-    rs_members = []
-    members.each_index do |n|
-      port = members[n]['mongodb']['port']
-      rs_members << {"_id" => n, "host" => "#{members[n]['fqdn']}:#{port}"}
-    end
 
+    Chef::Log.info("Configuring replicaset with members #{members.collect{ |n| n['hostname'] }.join(', ')}")    
     
-    Chef::Log.info(
-      "Configuring replicaset with members #{members.collect{ |n| n['hostname'] }.join(', ')}"
-    )
+    rs_members = []
+    members.each_with_index do |member,n|
+      port = member['mongodb']['port']
+      rs_members << {"_id" => n, "host" => "#{member['fqdn']}:#{port}"}
+    end
     
     rs_member_ips = []
-    members.each_index do |n|
-      port = members[n]['mongodb']['port']
-      rs_member_ips << {"_id" => n, "host" => "#{members[n]['ipaddress']}:#{port}"}
+    members.each_with_index do |member,n|
+      port = member['mongodb']['port']
+      rs_member_ips << {"_id" => n, "host" => "#{member['ipaddress']}:#{port}"}
     end
     
     admin = connection['admin']
