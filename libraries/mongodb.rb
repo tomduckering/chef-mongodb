@@ -134,9 +134,10 @@ class Chef::ResourceDefinitionList::MongoDB
           config['members'] << {"_id" => max_id, "host" => m}
         end
         
+        Chef::Log.debug(old_members)
         Chef::Log.debug(old_members.collect{ |m| m.split(":") }.to_s)
         
-        rs_connection = Mongo::ReplSetConnection.new( *old_members.collect{ |m| m.split(":") })
+        rs_connection = Mongo::MongoReplicaSetClient.new( old_members )
         admin = rs_connection['admin']
         
         cmd = BSON::OrderedHash.new
