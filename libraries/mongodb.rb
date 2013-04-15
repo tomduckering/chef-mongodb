@@ -93,7 +93,7 @@ class Chef::ResourceDefinitionList::MongoDB
     
     couldnt_initiate = /couldn't initiate : need all members up to initiate, not ok : ([a-zA-Z0-9\-_]*):(\d*)/
     
-    if replicaset_initated_result['errmsg'] =~ couldnt_initiate
+    if replicaset_initiate_result['errmsg'] =~ couldnt_initiate
 
       missing_member_host = $1
       missing_member_port = $2.to_i      
