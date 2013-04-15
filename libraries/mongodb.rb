@@ -37,29 +37,28 @@ class Chef::ResourceDefinitionList::MongoDB
       end
     end
     
+    this_node_mongo_port = node['mongodb']['port']
+    
     begin
-      connection = Mongo::Connection.new('localhost', node['mongodb']['port'], :op_timeout => 5, :slave_ok => true)
+      connection = Mongo::Connection.new('localhost', this_node_mongo_port, :op_timeout => 5, :slave_ok => true)
     rescue
-      Chef::Log.warn("Could not connect to database: 'localhost:#{node['mongodb']['port']}'")
+      Chef::Log.warn("Could not connect to database: 'localhost:#{this_node_mongo_port}'")
       return
     end
     
     # Want the node originating the connection to be included in the replicaset
-    members << node unless members.include?(node)
+    members << node unless members.include?(node) #This line doesn't seem to work!!
     members.sort!{ |x,y| x.name <=> y.name }
     members.uniq!{ |x| x.name }
 
     Chef::Log.info("Configuring replicaset with members #{members.collect{ |n| n['hostname'] }.join(', ')}")    
     
     rs_members = []
+    rs_member_ips = []
+    
     members.each_with_index do |member,n|
       port = member['mongodb']['port']
       rs_members << {"_id" => n, "host" => "#{member['fqdn']}:#{port}"}
-    end
-    
-    rs_member_ips = []
-    members.each_with_index do |member,n|
-      port = member['mongodb']['port']
       rs_member_ips << {"_id" => n, "host" => "#{member['ipaddress']}:#{port}"}
     end
     
@@ -76,18 +75,29 @@ class Chef::ResourceDefinitionList::MongoDB
       Chef::Log.info("Started configuring the replicaset, this will take some time, another run should run smoothly")
       return
     end
-    if result.fetch("ok", nil) == 1
+    
+    #check ok is 1 which means we're all good.
+    if result['ok'] == 1
       # everything is fine, do nothing
-    elsif result.fetch("errmsg", nil) == "already initialized"
+    
+    #if we get "already initialised then let's check some things out."
+    elsif result['errmsg'].include?("already init")
+      
       # check if both configs are the same
-      config = connection['local']['system']['replset'].find_one({"_id" => name})
-      if config['_id'] == name and config['members'] == rs_members
+      
+      #grab localhost's replicaset config.
+      localhost_replicaset_config = connection['local']['system']['replset'].find_one({"_id" => name})
+      
+      if localhost_replicaset_config['_id'] == name and localhost_replicaset_config['members'] == rs_members
         # config is up-to-date, do nothing
         Chef::Log.info("Replicaset '#{name}' already configured")
-      elsif config['_id'] == name and config['members'] == rs_member_ips
+        
+        
+      elsif localhost_replicaset_config['_id'] == name and localhost_replicaset_config['members'] == rs_member_ips
         # config is up-to-date, but ips are used instead of hostnames, change config to hostnames
         Chef::Log.info("Need to convert ips to hostnames for replicaset '#{name}'")
-        old_members = config['members'].collect{ |m| m['host'] }
+        old_members = localhost_replicaset_config['members'].collect{ |m| m['host'] }
+        
         mapping = {}
         rs_member_ips.each do |mem_h|
           members.each do |n|
@@ -97,33 +107,42 @@ class Chef::ResourceDefinitionList::MongoDB
             end
           end
         end
-        config['members'].collect!{ |m| {"_id" => m["_id"], "host" => mapping[m["host"]]} }
-        config['version'] += 1
+        
+        
+        localhost_replicaset_config['members'].collect!{ |m| {"_id" => m["_id"], "host" => mapping[m["host"]]} }
+        localhost_replicaset_config['version'] += 1
         
         rs_connection = Mongo::ReplSetConnection.new( *old_members.collect{ |m| m.split(":") })
         admin = rs_connection['admin']
         cmd = BSON::OrderedHash.new
-        cmd['replSetReconfig'] = config
+        cmd['replSetReconfig'] = localhost_replicaset_config
         result = nil
+        
         begin
           result = admin.command(cmd, :check_response => false)
         rescue Mongo::ConnectionFailure
           # reconfiguring destroys exisiting connections, reconnect
           Mongo::Connection.new('localhost', node['mongodb']['port'], :op_timeout => 5, :slave_ok => true)
-          config = connection['local']['system']['replset'].find_one({"_id" => name})
-          Chef::Log.info("New config successfully applied: #{config.inspect}")
+          localhost_replicaset_config = connection['local']['system']['replset'].find_one({"_id" => name})
+          Chef::Log.info("New config successfully applied: #{localhost_replicaset_config.inspect}")
         end
+        
         if !result.nil?
           Chef::Log.error("configuring replicaset returned: #{result.inspect}")
         end
+        
       else
+        #There's a change to the replica set members (adding and/or removing)
+        
         # remove removed members from the replicaset and add the new ones
-        max_id = config['members'].collect{ |member| member['_id']}.max
+        
+        max_id = localhost_replicaset_config['members'].collect{ |member| member['_id']}.max
+        
         rs_members.collect!{ |member| member['host'] }
-        config['version'] += 1
-        old_members = config['members'].collect{ |member| member['host'] }
+        localhost_replicaset_config['version'] += 1
+        old_members = localhost_replicaset_config['members'].collect{ |member| member['host'] }
         members_delete = old_members - rs_members        
-        config['members'] = config['members'].delete_if{ |m| members_delete.include?(m['host']) }
+        localhost_replicaset_config['members'] = localhost_replicaset_config['members'].delete_if{ |m| members_delete.include?(m['host']) }
         members_add = rs_members - old_members
         members_add.each do |m|
           max_id += 1
@@ -137,7 +156,7 @@ class Chef::ResourceDefinitionList::MongoDB
         admin = rs_connection['admin']
         
         cmd = BSON::OrderedHash.new
-        cmd['replSetReconfig'] = config
+        cmd['replSetReconfig'] = localhost_replicaset_config
         
         result = nil
         begin
