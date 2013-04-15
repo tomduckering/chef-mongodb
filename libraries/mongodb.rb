@@ -65,6 +65,8 @@ class Chef::ResourceDefinitionList::MongoDB
       Chef::Log.info "Started configuring the replicaset, this will take some time, another run should run smoothly"
       return
     end
+    
+    Chef::Log.info replicaset_initiate_result.inspect
 
     already_initialized = /already initialized/
 
