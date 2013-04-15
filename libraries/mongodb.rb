@@ -44,11 +44,14 @@ class Chef::ResourceDefinitionList::MongoDB
     members.sort!{ |x,y| x.name <=> y.name }
     members.uniq!{ |x| x.name }
 
-    local_mongo_client = Mongo::MongoClient.new('localhost', this_node_mongo_port,:slave_ok => true)
+    begin
+      local_mongo_client = Mongo::MongoClient.new('localhost', this_node_mongo_port,:slave_ok => true, :connect_timeout => 30)
+    rescue
+      Chef::Log.warn("Could not connect to database: 'localhost:#{this_node_mongo_port}'")
+      return
+    end
 
-
-    admin_db = local_mongo_client['admin']
-
+    local_admin_collection = local_mongo_client['admin']
 
     intended_replica_set_config = { '_id' => name, 'members' => [] }
 
@@ -62,7 +65,7 @@ class Chef::ResourceDefinitionList::MongoDB
     Chef::Log.info "Sending the following command: #{replica_set_initiate_command.inspect}"
 
     begin
-      replicaset_initiate_result = admin_db.command(replica_set_initiate_command, :check_response => false)
+      replicaset_initiate_result = local_admin_collection.command(replica_set_initiate_command, :check_response => false)
     rescue Mongo::OperationTimeout
       Chef::Log.info "Started configuring the replicaset, this will take some time, another run should run smoothly"
       return
@@ -111,7 +114,7 @@ class Chef::ResourceDefinitionList::MongoDB
 
       replica_set_client = Mongo::MongoReplicaSetClient.new(["#{existing_member_host}:#{existing_member_port}"])
 
-      replica_set_admin = replica_set_client['admin']
+      replica_set_admin_collection = replica_set_client['admin']
 
       current_replica_set_config = replica_set_client['local']['system']['replset'].find_one({"_id" => name})
 
@@ -121,7 +124,7 @@ class Chef::ResourceDefinitionList::MongoDB
       replica_set_reconfig_command = BSON::OrderedHash.new
       replica_set_reconfig_command['replSetReconfig'] = intended_replica_set_config
 
-      rs_reconfigure_result = replica_set_admin.command(replica_set_reconfig_command,:check_response => false)
+      rs_reconfigure_result = replica_set_admin_collection.command(replica_set_reconfig_command,:check_response => false)
       Chef::Log.info rs_reconfigure.inspect
     end
 
