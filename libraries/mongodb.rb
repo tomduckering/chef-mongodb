@@ -76,7 +76,7 @@ class Chef::ResourceDefinitionList::MongoDB
 
       current_local_replica_set_config = local_mongo_client['local']['system']['replset'].find_one({"_id" => name})
 
-      intended_members = intended_local_replica_set_config['members'].map{|m| m['host']}
+      intended_members = intended_replica_set_config['members'].map{|m| m['host']}
       current_members = current_local_replica_set_config['members'].map{|m| m['host']}
 
       if current_members == intended_members 
@@ -90,7 +90,17 @@ class Chef::ResourceDefinitionList::MongoDB
       end
 
     end
+    
+    couldnt_initiate = /couldn't initiate : need all members up to initiate, not ok : ([a-zA-Z0-9\-_]*):(\d*)/
+    
+    if replicaset_initated_result['errmsg'] =~ couldnt_initiate
 
+      missing_member_host = $1
+      missing_member_port = $2.to_i      
+      
+      Chef::Log.error "Other members of the replica set do not seem to be available: #{missing_member_host}:#{missing_member_port}"
+    
+    end
 
     already_initiated = /couldn't initiate : member ([a-zA-Z0-9\-_]*):(\d*) is already initiated/
 
