@@ -58,6 +58,8 @@ class Chef::ResourceDefinitionList::MongoDB
 
     replica_set_initiate_command = BSON::OrderedHash.new
     replica_set_initiate_command['replSetInitiate'] = intended_replica_set_config
+    
+    Chef::Log.info "Sending the following command: #{replica_set_initiate_command.inspect}"
 
     begin
       replicaset_initiate_result = admin_db.command(replica_set_initiate_command, :check_response => false)
