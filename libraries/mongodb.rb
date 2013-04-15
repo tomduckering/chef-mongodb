@@ -38,6 +38,81 @@ class Chef::ResourceDefinitionList::MongoDB
     end
     
     this_node_mongo_port = node['mongodb']['port']
+     
+    # Want the node originating the connection to be included in the replicaset
+    members << node unless members.include?(node) #This line doesn't seem to work!!
+    members.sort!{ |x,y| x.name <=> y.name }
+    members.uniq!{ |x| x.name }
+
+    local_mongo_client = Mongo::MongoClient.new('localhost', this_node_mongo_port,:slave_ok => true)
+
+
+    admin_db = local_mongo_client['admin']
+
+
+    intended_replica_set_config = { '_id' => name, 'members' => [] }
+
+    members.each_with_index do |member,index|
+      intended_replica_set_config['members'] << { '_id' => index, 'host' => "#{member['fqdn']}:#{member['mongodb']['port']}"}
+    end
+
+    replica_set_initiate_command = BSON::OrderedHash.new
+    replica_set_initiate_command['replSetInitiate'] = intended_replica_set_config
+
+    begin
+      replicaset_initiate_result = admin_db.command(replica_set_initiate_command, :check_response => false)
+    rescue Mongo::OperationTimeout
+      Chef::Log.info "Started configuring the replicaset, this will take some time, another run should run smoothly"
+      return
+    end
+
+    already_initialized = /already initialized/
+
+    if replicaset_initiate_result['errmsg'] =~ already_initialized
+
+      current_local_replica_set_config = local_mongo_client['local']['system']['replset'].find_one({"_id" => name})
+
+      intended_members = intended_local_replica_set_config['members'].map{|m| m['host']}
+      current_members = current_local_replica_set_config['members'].map{|m| m['host']}
+
+      if current_members == intended_members 
+        Chef::Log.info "Current members matches intended members."
+      else
+        members_to_remove = current_members  - intended_members 
+        members_to_add    = intended_members - current_members
+
+        Chef::Log.info "Should remove #{members_to_remove}"
+        Chef::Log.info "Should add    #{members_to_add}"
+      end
+
+    end
+
+
+    already_initiated = /couldn't initiate : member ([a-zA-Z0-9\-_]*):(\d*) is already initiated/
+
+    if replicaset_initiate_result['errmsg'] =~ already_initiated
+
+      existing_member_host = $1
+      existing_member_port = $2.to_i
+
+      replica_set_client = Mongo::MongoReplicaSetClient.new(["#{existing_member_host}:#{existing_member_port}"])
+
+      replica_set_admin = replica_set_client['admin']
+
+      current_replica_set_config = replica_set_client['local']['system']['replset'].find_one({"_id" => name})
+
+      
+      intended_replica_set_config['version'] = current_replica_set_config['version'] + 1
+
+      replica_set_reconfig_command = BSON::OrderedHash.new
+      replica_set_reconfig_command['replSetReconfig'] = intended_replica_set_config
+
+      rs_reconfigure_result = replica_set_admin.command(replica_set_reconfig_command,:check_response => false)
+      Chef::Log.info rs_reconfigure.inspect
+    end
+
+=begin
+    Chef::Log.info("Configuring replicaset with members #{members.collect{ |n| n['hostname'] }.join(', ')}")    
     
     begin
       connection = Mongo::Connection.new('localhost', this_node_mongo_port, :op_timeout => 5, :slave_ok => true)
@@ -45,13 +120,6 @@ class Chef::ResourceDefinitionList::MongoDB
       Chef::Log.warn("Could not connect to database: 'localhost:#{this_node_mongo_port}'")
       return
     end
-    
-    # Want the node originating the connection to be included in the replicaset
-    members << node unless members.include?(node) #This line doesn't seem to work!!
-    members.sort!{ |x,y| x.name <=> y.name }
-    members.uniq!{ |x| x.name }
-
-    Chef::Log.info("Configuring replicaset with members #{members.collect{ |n| n['hostname'] }.join(', ')}")    
     
     rs_members = []
     rs_member_ips = []
@@ -88,12 +156,12 @@ class Chef::ResourceDefinitionList::MongoDB
       #grab localhost's replicaset config.
       localhost_replicaset_config = connection['local']['system']['replset'].find_one({"_id" => name})
       
-      if localhost_replicaset_config['_id'] == name and localhost_replicaset_config['members'] == rs_members
+      if !nil?(localhost_replicaset_config) and localhost_replicaset_config['_id'] == name and localhost_replicaset_config['members'] == rs_members
         # config is up-to-date, do nothing
         Chef::Log.info("Replicaset '#{name}' already configured")
         
         
-      elsif localhost_replicaset_config['_id'] == name and localhost_replicaset_config['members'] == rs_member_ips
+      elsif !nil?(localhost_replicaset_config) and localhost_replicaset_config['_id'] == name and localhost_replicaset_config['members'] == rs_member_ips
         # config is up-to-date, but ips are used instead of hostnames, change config to hostnames
         Chef::Log.info("Need to convert ips to hostnames for replicaset '#{name}'")
         old_members = localhost_replicaset_config['members'].collect{ |m| m['host'] }
@@ -174,6 +242,7 @@ class Chef::ResourceDefinitionList::MongoDB
     elsif !result.fetch("errmsg", nil).nil?
       Chef::Log.error("Failed to configure replicaset, reason: #{result.inspect}")
     end
+=end
   end
   
   def self.configure_shards(node, shard_nodes)
