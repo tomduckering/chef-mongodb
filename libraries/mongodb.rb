@@ -81,7 +81,7 @@ class Chef::ResourceDefinitionList::MongoDB
 
       intended_members = intended_replica_set_config['members'].map{|m| m['host']}
       current_members = current_local_replica_set_config['members'].map{|m| m['host']}
-
+      
       if current_members == intended_members 
         Chef::Log.info "Current members matches intended members."
       else
@@ -90,13 +90,28 @@ class Chef::ResourceDefinitionList::MongoDB
 
         Chef::Log.info "Should remove #{members_to_remove}"
         Chef::Log.info "Should add    #{members_to_add}"
+
+        replica_set_client = Mongo::MongoReplicaSetClient.new(["localhost:#{this_node_mongo_port}"], :refresh_mode => :sync)
+        replica_set_admin_collection = replica_set_client['admin']
+        
+        intended_replica_set_config['version'] = current_replica_set_config['version'] + 1
+        
+        replica_set_reconfig_command = BSON::OrderedHash.new
+        replica_set_reconfig_command['replSetReconfig'] = intended_replica_set_config
+        
+        rs_reconfigure_result = replica_set_admin_collection.command(replica_set_reconfig_command,:check_response => false)
+        
+        Chef::Log.info rs_reconfigure.inspect
+      
       end
 
     end
     
-    couldnt_initiate = /couldn't initiate : need all members up to initiate, not ok : ([a-zA-Z0-9\-_]*):(\d*)/
+    couldnt_initiate_cant_find_self = /couldn't initiate : can't find self in the replset config/
     
-    if replicaset_initiate_result['errmsg'] =~ couldnt_initiate
+    couldnt_initiate_need_all_members = /couldn't initiate : need all members up to initiate, not ok : ([a-zA-Z0-9\-_]*):(\d*)/
+    
+    if replicaset_initiate_result['errmsg'] =~ couldnt_initiate_need_all_members
 
       missing_member_host = $1
       missing_member_port = $2.to_i      
