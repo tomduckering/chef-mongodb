@@ -91,7 +91,7 @@ class Chef::ResourceDefinitionList::MongoDB
 
         Chef::Log.info "Members to add :             #{members_to_add}"
         Chef::Log.info "Members to remove :          #{members_to_remove}"
-        Chef::Log.info "Remaining original members : #{members_to_add}"
+        Chef::Log.info "Remaining original members : #{members_remaining}"
 
         replica_set_client = Mongo::MongoReplicaSetClient.new(members_remaining, :refresh_mode => :sync)
         replica_set_admin_collection = replica_set_client['admin']
