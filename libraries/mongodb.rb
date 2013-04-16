@@ -29,7 +29,7 @@ class Chef::ResourceDefinitionList::MongoDB
     new_config['version'] = current_config['version'] + 1
     new_config['members'] = []
     
-    highest_current_member_id = current_config['members']{|member| member['_id']}.max
+    highest_current_member_id = current_config['members'].collect{|member| member['_id'].to_i}.max
     
     next_new_id = highest_current_member_id + 1
     
