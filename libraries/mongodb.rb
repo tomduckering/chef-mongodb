@@ -94,6 +94,8 @@ class Chef::ResourceDefinitionList::MongoDB
         replica_set_client = Mongo::MongoReplicaSetClient.new(["localhost:#{this_node_mongo_port}"], :refresh_mode => :sync)
         replica_set_admin_collection = replica_set_client['admin']
         
+        current_replica_set_config = replica_set_client['local']['system']['replset'].find_one({"_id" => name})
+        
         intended_replica_set_config['version'] = current_replica_set_config['version'] + 1
         
         replica_set_reconfig_command = BSON::OrderedHash.new
