@@ -25,7 +25,8 @@ class Chef::ResourceDefinitionList::MongoDB
   
   def create_new_replica_set_config(current_config,new_member_hostnames)
     new_config = {}
-    
+
+    new_config['_id']     = current_config['_id']    
     new_config['version'] = current_config['version'] + 1
     new_config['members'] = []
     
@@ -38,8 +39,8 @@ class Chef::ResourceDefinitionList::MongoDB
       #see if the hostname already exists in the config and use that existing id.
       matched_members = current_config['members'].select{|member| member['host'] == hostname}
       
-      if matched_member.length = 1
-        new_config['members'] << matched_member[0]
+      if matched_members.length == 1
+        new_config['members'] << matched_members[0]
       elsif matched_members.length > 1
         #something went really wrong. Config shouldn't have more than once of the same instance.
       else
@@ -133,6 +134,8 @@ class Chef::ResourceDefinitionList::MongoDB
         current_replica_set_config = replica_set_client['local']['system']['replset'].find_one({"_id" => name})
         
         intended_replica_set_config = create_new_replica_set_config(current_replica_set_config,intended_members)
+        
+        Chef::Log.info "Configuring with the following doc : #{intended_replica_set_config.inspect}"
         
         replica_set_reconfig_command = BSON::OrderedHash.new
         replica_set_reconfig_command['replSetReconfig'] = intended_replica_set_config
