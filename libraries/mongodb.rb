@@ -87,11 +87,13 @@ class Chef::ResourceDefinitionList::MongoDB
       else
         members_to_remove = current_members  - intended_members 
         members_to_add    = intended_members - current_members
+        members_remaining = current_members & intended_members
 
-        Chef::Log.info "Should remove #{members_to_remove}"
-        Chef::Log.info "Should add    #{members_to_add}"
+        Chef::Log.info "Members to add :             #{members_to_add}"
+        Chef::Log.info "Members to remove :          #{members_to_remove}"
+        Chef::Log.info "Remaining original members : #{members_to_add}"
 
-        replica_set_client = Mongo::MongoReplicaSetClient.new(intended_members, :refresh_mode => :sync)
+        replica_set_client = Mongo::MongoReplicaSetClient.new(members_remaining, :refresh_mode => :sync)
         replica_set_admin_collection = replica_set_client['admin']
         
         current_replica_set_config = replica_set_client['local']['system']['replset'].find_one({"_id" => name})
