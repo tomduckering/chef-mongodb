@@ -91,7 +91,7 @@ class Chef::ResourceDefinitionList::MongoDB
         Chef::Log.info "Should remove #{members_to_remove}"
         Chef::Log.info "Should add    #{members_to_add}"
 
-        replica_set_client = Mongo::MongoReplicaSetClient.new(["localhost:#{this_node_mongo_port}"], :refresh_mode => :sync)
+        replica_set_client = Mongo::MongoReplicaSetClient.new(intended_members, :refresh_mode => :sync)
         replica_set_admin_collection = replica_set_client['admin']
         
         current_replica_set_config = replica_set_client['local']['system']['replset'].find_one({"_id" => name})
