@@ -45,7 +45,7 @@ class Chef::ResourceDefinitionList::MongoDB
     members.uniq!{ |x| x.name }
 
     begin
-      local_mongo_client = Mongo::MongoClient.new('localhost', this_node_mongo_port,:slave_ok => true, :connect_timeout => 30)
+      local_mongo_client = Mongo::MongoClient.new('localhost', this_node_mongo_port,:slave_ok => true, :connect_timeout => 30, :op_timeout => 30)
     rescue
       Chef::Log.warn("Could not connect to database: 'localhost:#{this_node_mongo_port}'")
       return
@@ -93,7 +93,7 @@ class Chef::ResourceDefinitionList::MongoDB
         Chef::Log.info "Members to remove :          #{members_to_remove}"
         Chef::Log.info "Remaining original members : #{members_remaining}"
 
-        replica_set_client = Mongo::MongoReplicaSetClient.new(members_remaining, :refresh_mode => :sync)
+        replica_set_client = Mongo::MongoReplicaSetClient.new(members_remaining, :slave_ok => false, :refresh_mode => :sync,:connect_timeout => 30, :op_timeout => 30)
         replica_set_admin_collection = replica_set_client['admin']
         
         current_replica_set_config = replica_set_client['local']['system']['replset'].find_one({"_id" => name})
