@@ -64,7 +64,7 @@ class Chef::ResourceDefinitionList::MongoDB
       if Chef::Config[:solo]
         abort("Cannot configure replicaset '#{name}', no member nodes found")
       else
-        Chef::Log.warn " Cannot configure replicaset '#{name}', no member nodes found"
+        Chef::Log.warn "Cannot configure replicaset '#{name}', no member nodes found"
         return
       end
     end
@@ -79,7 +79,7 @@ class Chef::ResourceDefinitionList::MongoDB
     begin
       local_mongo_client = Mongo::MongoClient.new('localhost', this_node_mongo_port,:slave_ok => true, :connect_timeout => 30, :op_timeout => 30)
     rescue
-      Chef::Log.warn " Could not connect to database: 'localhost:#{this_node_mongo_port}'"
+      Chef::Log.warn "Could not connect to database: 'localhost:#{this_node_mongo_port}'"
       return
     end
 
@@ -98,7 +98,7 @@ class Chef::ResourceDefinitionList::MongoDB
     begin
       replicaset_initiate_result = local_admin_collection.command(replica_set_initiate_command, :check_response => false)
     rescue Mongo::OperationTimeout
-      Chef::Log.info " Started configuring the replicaset, this will take some time, another run should run smoothly"
+      Chef::Log.info "Started configuring the replicaset, this will take some time, another run should run smoothly"
       return
     end
     
@@ -108,7 +108,7 @@ class Chef::ResourceDefinitionList::MongoDB
 
     if replicaset_initiate_result['errmsg'] =~ already_initialized
 
-      Chef::Log.info ' Replica set is alreay initialized - though it might not be configured as we want...'
+      Chef::Log.info 'Replica set is alreay initialized - though it might not be configured as we want...'
 
       current_local_replica_set_config = local_mongo_client['local']['system']['replset'].find_one({"_id" => name})
 
@@ -118,15 +118,15 @@ class Chef::ResourceDefinitionList::MongoDB
       #Compare config based on membership
       if current_members != intended_members 
         
-        Chef::Log.info ' Set of intended members does not match current set.'
+        Chef::Log.info 'Set of intended members does not match current set.'
         
         members_to_remove = current_members  - intended_members 
         members_to_add    = intended_members - current_members
         members_remaining = current_members & intended_members
 
-        Chef::Log.info " Members to add :             #{members_to_add}"
-        Chef::Log.info " Members to remove :          #{members_to_remove}"
-        Chef::Log.info " Remaining original members : #{members_remaining}"
+        Chef::Log.info "Members to add :             #{members_to_add}"
+        Chef::Log.info "Members to remove :          #{members_to_remove}"
+        Chef::Log.info "Remaining original members : #{members_remaining}"
 
         replica_set_client = Mongo::MongoReplicaSetClient.new(members_remaining, :refresh_mode => :sync,:connect_timeout => 30, :op_timeout => 30)
         replica_set_admin_collection = replica_set_client['admin']
@@ -151,7 +151,7 @@ class Chef::ResourceDefinitionList::MongoDB
     couldnt_initiate_cant_find_self = /couldn't initiate : can't find self in the replset config/
     
     if replicaset_initiate_result['errmsg'] =~ couldnt_initiate_cant_find_self
-      Chef::Log.warn " Unable to cope with: #{replicaset_initiate_result['errmsg']}"
+      Chef::Log.warn "Unable to cope with: #{replicaset_initiate_result['errmsg']}"
     end
     
     couldnt_initiate_need_all_members = /couldn't initiate : need all members up to initiate, not ok : ([a-zA-Z0-9\-_]*):(\d*)/
@@ -161,7 +161,7 @@ class Chef::ResourceDefinitionList::MongoDB
       missing_member_host = $1
       missing_member_port = $2.to_i      
       
-      Chef::Log.error " Other members of the replica set do not seem to be available: #{missing_member_host}:#{missing_member_port}"
+      Chef::Log.error "Other members of the replica set do not seem to be available: #{missing_member_host}:#{missing_member_port}"
     
     end
 
