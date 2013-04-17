@@ -221,6 +221,8 @@ class Chef::ResourceDefinitionList::MongoDB
         rs_reconfigure_result = replica_set_admin_collection.command(replica_set_reconfig_command,:check_response => false)
         
         info rs_reconfigure_result.inspect
+      else
+        info "Replica set configuration is as it should be."
       
       end
 
