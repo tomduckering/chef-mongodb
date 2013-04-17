@@ -90,6 +90,8 @@ class Chef::ResourceDefinitionList::MongoDB
       intended_replica_set_config['members'] << { '_id' => index, 'host' => "#{member['fqdn']}:#{member['mongodb']['port']}"}
     end
 
+    intended_members = intended_replica_set_config['members'].map{|m| m['host']}
+    
     replica_set_initiate_command = BSON::OrderedHash.new
     replica_set_initiate_command['replSetInitiate'] = intended_replica_set_config
     
@@ -112,7 +114,7 @@ class Chef::ResourceDefinitionList::MongoDB
 
       current_local_replica_set_config = local_mongo_client['local']['system']['replset'].find_one({"_id" => name})
 
-      intended_members = intended_replica_set_config['members'].map{|m| m['host']}
+  
       current_members  = current_local_replica_set_config['members'].map{|m| m['host']}
       
       #Compare config based on membership
@@ -179,7 +181,7 @@ class Chef::ResourceDefinitionList::MongoDB
       current_replica_set_config = replica_set_client['local']['system']['replset'].find_one({"_id" => name})
 
       
-      intended_replica_set_config['version'] = current_replica_set_config['version'] + 1
+      intended_replica_set_config = create_new_replica_set_config(current_replica_set_config,intended_members)
 
       replica_set_reconfig_command = BSON::OrderedHash.new
       replica_set_reconfig_command['replSetReconfig'] = intended_replica_set_config
