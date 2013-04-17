@@ -191,7 +191,7 @@ class Chef::ResourceDefinitionList::MongoDB
       
       info "Connecting to replica set: #{members_without_current_host}..."
       
-      replica_set_client = Mongo::MongoReplicaSetClient.new(members_without_current_host, :refresh_mode => :sync,:connect_timeout => 30, :op_timeout => 30)
+      replica_set_client = Mongo::MongoReplicaSetClient.new(intended_members, :refresh_mode => :sync,:connect_timeout => 30, :op_timeout => 30)
       current_replica_set_config = replica_set_client['local']['system']['replset'].find_one({"_id" => name})
       
       replica_set_admin_collection = replica_set_client['admin']
