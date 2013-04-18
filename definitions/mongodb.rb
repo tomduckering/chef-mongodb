@@ -172,7 +172,6 @@ define :mongodb_instance, :mongodb_type => "mongod" , :action => [:enable, :star
           MongoDB.configure_replicaset(replicaset, replicaset_name, rs_nodes)
         end
       end
-      action :nothing
     end
   end
   
