@@ -84,7 +84,7 @@ define :mongodb_instance, :mongodb_type => "mongod" , :action => [:enable, :star
   
   # default file
   template "#{node['mongodb']['defaults_dir']}/#{name}" do
-    action :create
+    action :create_if_missing
     source "mongodb.default.erb"
     group node['mongodb']['root_group']
     owner "root"
