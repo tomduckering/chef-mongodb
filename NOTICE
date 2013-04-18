@@ -2,8 +2,11 @@
 Chef Cookbooks Notices
 ======================
 
-Developed at edelight GmbH (http://www.edelight-group.com/).
+Created by Thomas Duckering
+
+Derived from code initially developed at edelight GmbH (http://www.edelight-group.com/).
 
 Contributors:
 
  * Markus Korn <markus.korn@edelight.de>
+ * Thomas Duckering <tom.duckering@gmail.com>
