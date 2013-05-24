@@ -17,7 +17,7 @@
 # limitations under the License.
 #
 
-include_recipe "mongodb"
+include_recipe 'mongodb::packages'
 
 # if we are configuring a shard as a replicaset we do nothing in this recipe
 if !node.recipe?("mongodb::shard")
@@ -28,5 +28,6 @@ if !node.recipe?("mongodb::shard")
     dbpath       node['mongodb']['dbpath']
     replicaset   node
     enable_rest  node['mongodb']['enable_rest']
+    bind_ip      node['mongodb']['bind_ip']
   end
 end

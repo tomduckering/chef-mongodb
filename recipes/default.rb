@@ -19,19 +19,8 @@
 # limitations under the License.
 #
 
-package node[:mongodb][:package_name] do
-  action :install
-end
 
-needs_mongo_gem = (node.recipe?("mongodb::replicaset") or node.recipe?("mongodb::mongos"))
-
-# install the mongo ruby gem at compile time to make it globally available
-gem_package 'mongo' do
-  version "1.8.5"
-  action :nothing
-end.run_action(:install)
-Gem.clear_paths
-
+include_recipe 'mongodb::packages'
 
 if node.recipe?("mongodb::default") or node.recipe?("mongodb")
   # configure default instance
