@@ -66,6 +66,8 @@ define :mongodb_instance, :mongodb_type => "mongod" , :action => [:enable, :star
       end
     end
   end
+
+  Chef::Log.info("Replicaset Name is #{replicaset_name}")
   
   if !["mongod", "shard", "configserver", "mongos"].include?(type)
     raise "Unknown mongodb type '#{type}'"
@@ -80,6 +82,12 @@ define :mongodb_instance, :mongodb_type => "mongod" , :action => [:enable, :star
     configfile = nil
     dbpath = nil
     configserver = configserver_nodes.collect{|n| "#{n['fqdn']}:#{n['mongodb']['port']}" }.join(",")
+  end
+
+  begin
+    throw
+  rescue
+    puts $!.backtrace
   end
   
   # default file
