@@ -19,16 +19,6 @@
 
 include_recipe 'mongodb::packages'
 
-file "/etc/security/limits.d/mongodb.conf"  do
-	content "mongodb - nofile 64000
-	mongodb - nproc 32000
-	mongodb - cpu unlimited
-	mongodb - fsize unlimited"
-	owner "root"
-	group "root"
-	mode "0644"
-end
-
 # if we are configuring a shard as a replicaset we do nothing in this recipe
 if !node.recipe?("mongodb::shard")
   mongodb_instance "mongodb" do
