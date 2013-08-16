@@ -19,7 +19,7 @@
 # limitations under the License.
 #
 
-include_recipe "mongodb"
+include_recipe 'mongodb::packages'
 
 service "mongodb" do
   action [:disable, :stop]
