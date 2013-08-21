@@ -17,6 +17,11 @@
 # limitations under the License.
 #
 
+default['mongodb']['install_method'] = 'package'
+default['mongodb']['version'] = '2.4.6'
+default['mongodb']['package_name'] = "mongo-10gen-#{mongodb['version']}-mongodb_1.x86_64.rpm"
+default['mongodb']['package_url'] = "http://downloads-distro.mongodb.org/repo/redhat/os/x86_64/RPMS/#{mongodb['package_name']}"
+
 default[:mongodb][:dbpath] = "/var/lib/mongodb"
 default[:mongodb][:logpath] = "/var/log/mongodb"
 default[:mongodb][:bind_ip] = nil
@@ -29,6 +34,7 @@ default[:mongodb][:replicaset_name] = nil
 default[:mongodb][:shard_name] = "default"
 
 default[:mongodb][:enable_rest] = false
+default[:mongodb][:enable_journalling] = true
 
 default[:mongodb][:user] = "mongodb"
 default[:mongodb][:group] = "mongodb"
