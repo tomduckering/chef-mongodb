@@ -17,10 +17,8 @@
 # limitations under the License.
 #
 
-default['mongodb']['install_method'] = 'package'
 default['mongodb']['version'] = '2.4.6'
 default['mongodb']['package_name'] = "mongo-10gen-#{mongodb['version']}-mongodb_1.x86_64.rpm"
-default['mongodb']['package_url'] = "http://downloads-distro.mongodb.org/repo/redhat/os/x86_64/RPMS/#{mongodb['package_name']}"
 
 default[:mongodb][:dbpath] = "/var/lib/mongodb"
 default[:mongodb][:logpath] = "/var/log/mongodb"
