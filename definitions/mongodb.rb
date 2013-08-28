@@ -81,12 +81,6 @@ define :mongodb_instance, :mongodb_type => "mongod" , :action => [:enable, :star
     dbpath = nil
     configserver = configserver_nodes.collect{|n| "#{n['fqdn']}:#{n['mongodb']['port']}" }.join(",")
   end
-
-  begin
-    throw
-  rescue
-    puts $!.backtrace
-  end
   
   # default file
   template "#{node['mongodb']['defaults_dir']}/#{name}" do
