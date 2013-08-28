@@ -1,4 +1,4 @@
-include_recipe "mongodb:10gen_repo"
+include_recipe "mongodb::10gen_repo"
 
 package node['mongodb']['package_name'] do
   action :install
