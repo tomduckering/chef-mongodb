@@ -1,4 +1,4 @@
-include_recipe "mongodb::10gen_repo" unless node['mongodb']["ommit_repos"]
+include_recipe "mongodb::10gen_repo" unless node['mongodb']["omit_repos"]
 
 package node['mongodb']['package_name'] do
   action :install

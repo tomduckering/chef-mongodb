@@ -42,7 +42,7 @@ default[:mongodb][:init_dir] = "/etc/init.d"
 
 default[:mongodb][:init_script_template] = "mongodb.init.erb"
 
-node[:mongodb][:ommit_repos] = false
+node[:mongodb][:omit_repos] = false
 
 case node['platform']
 when "freebsd"
